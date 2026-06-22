@@ -1,7 +1,11 @@
 from pathlib import Path
-import shutil
 import config
-from utils import pdfs_to_markdowns, clear_directory_contents
+from utils import clear_directory_contents
+from core.multimodal_processor import (
+    MultimodalDocumentProcessor,
+    SUPPORTED_UPLOAD_EXTENSIONS,
+    markdown_name_for,
+)
 
 class DocumentManager:
 
@@ -9,13 +13,17 @@ class DocumentManager:
         self.rag_system = rag_system
         self.markdown_dir = Path(config.MARKDOWN_DIR)
         self.markdown_dir.mkdir(parents=True, exist_ok=True)
+        self.multimodal_processor = MultimodalDocumentProcessor()
         
     def add_documents(self, document_paths, progress_callback=None):
         if not document_paths:
             return 0, 0
             
         document_paths = [document_paths] if isinstance(document_paths, str) else document_paths
-        document_paths = [p for p in document_paths if p and Path(p).suffix.lower() in [".pdf", ".md"]]
+        document_paths = [
+            p for p in document_paths
+            if p and Path(p).suffix.lower() in SUPPORTED_UPLOAD_EXTENSIONS
+        ]
         
         if not document_paths:
             return 0, 0
@@ -28,8 +36,7 @@ class DocumentManager:
                 progress_callback((i + 1) / len(document_paths), f"Processing {Path(doc_path).name}")
                 
             source_path = Path(doc_path)
-            doc_name = source_path.stem
-            md_path = self.markdown_dir / f"{doc_name}.md"
+            md_path = self.markdown_dir / markdown_name_for(source_path)
             
             if md_path.exists():
                 skipped += 1
@@ -37,10 +44,8 @@ class DocumentManager:
                 
             parent_ids = []
             try:
-                if source_path.suffix.lower() == ".md":
-                    shutil.copy(source_path, md_path)
-                else:
-                    pdfs_to_markdowns(str(source_path), overwrite=False)
+                self.multimodal_processor.convert_to_markdown(source_path, md_path)
+
                 parent_chunks, child_chunks = self.rag_system.chunker.create_chunks_single(
                     md_path,
                     source_name=source_path.name,

@@ -51,6 +51,7 @@ The application will be available at `http://localhost:7860` (default Gradio por
 This system implements an advanced RAG pipeline with the following key features:
 
 - **Parent-Child Chunking**: Documents are split into small child chunks (for precise retrieval) linked to larger parent chunks (for rich context)
+- **Multimodal Ingestion**: Images, tables, spreadsheets, and rich documents are converted into Markdown before indexing
 - **Hybrid Search**: Combines dense embeddings and sparse (BM25) retrieval for optimal results
 - **LangGraph Agent**: Orchestrates query rewriting, retrieval, and response generation
 - **Compact Chat Memory**: Rewrites follow-ups using both a rolling summary and bounded recent conversation history
@@ -61,8 +62,21 @@ This system implements an advanced RAG pipeline with the following key features:
 ### Data Flow
 
 ```
-PDF → Markdown Conversion → Parent/Child Chunking → Vector Indexing → Agent Retrieval → LLM Response
+PDF/Image/Table/Office Document → Markdown Conversion → Parent/Child Chunking → Vector Indexing → Agent Retrieval → LLM Response
 ```
+
+### Multimodal Input Support
+
+The ingestion path keeps the original project architecture: every supported source is converted into Markdown, then the existing parent-child chunker and Qdrant indexing pipeline handle it normally.
+
+| Capability | Open-source adapter | Used for |
+|------------|---------------------|----------|
+| OCR | PaddleOCR | Text inside uploaded images |
+| Image captioning | Hugging Face Transformers with BLIP | Visual descriptions for uploaded images |
+| Table extraction | pandas, openpyxl, xlrd, Camelot | CSV/TSV/Excel tables and PDF tables |
+| Document parsing | Docling | PDF, DOCX, PPTX, HTML, and other rich document layouts |
+
+Supported uploads: `.pdf`, `.md`, `.txt`, `.png`, `.jpg`, `.jpeg`, `.webp`, `.bmp`, `.tif`, `.tiff`, `.csv`, `.tsv`, `.xlsx`, `.xls`, `.docx`, `.pptx`, `.html`, `.htm`.
 
 ---
 
@@ -84,6 +98,7 @@ PDF → Markdown Conversion → Parent/Child Chunking → Vector Indexing → Ag
 |------|---------|
 | `project/core/rag_system.py` | System bootstrap - creates managers and compiles LangGraph agent |
 | `project/core/document_manager.py` | Document ingestion pipeline (convert, chunk, index) |
+| `project/core/multimodal_processor.py` | Converts images, tables, and rich documents into Markdown for the existing ingestion pipeline |
 | `project/core/chat_interface.py` | Streams the aggregated answer while separating query analysis and tool activity from internal node output |
 | `project/core/observability.py` | Optional Langfuse tracing — callback handler lifecycle |
 
@@ -122,7 +137,7 @@ All primary settings are in `project/config.py`. Key parameters:
 ### Directory Configuration
 
 ```python
-MARKDOWN_DIR = "markdown_docs"        # Storage for converted PDF → Markdown files
+MARKDOWN_DIR = "markdown_docs"        # Storage for converted sources → Markdown files
 PARENT_STORE_PATH = "parent_store"    # File-backed storage for parent chunks
 QDRANT_DB_PATH = "qdrant_db"          # Local Qdrant vector database path
 ```
@@ -152,6 +167,15 @@ LLM_SEED = 42
 RETRIEVAL_SCORE_THRESHOLD = 0.4  # Lower = more recall, higher = more precision
 DEFAULT_RETRIEVAL_K = 7          # Default number of child chunks used by retrieval and evaluation
 CHILD_CHUNK_SEPARATOR = "\n\n<CHILD_CHUNK_BOUNDARY>\n\n"  # Keeps ranked child results separable for evaluation
+```
+
+### Multimodal Ingestion Configuration
+
+```python
+IMAGE_CAPTION_MODEL = "Salesforce/blip-image-captioning-base"
+IMAGE_CAPTION_MAX_NEW_TOKENS = 80
+PADDLEOCR_LANG = "ch"
+TABLE_ROWS_PER_MARKDOWN_BLOCK = 200
 ```
 
 ### Agent Configuration

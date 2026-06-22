@@ -1,6 +1,7 @@
 import gradio as gr
 from core.chat_interface import ChatInterface
 from core.document_manager import DocumentManager
+from core.multimodal_processor import SUPPORTED_UPLOAD_EXTENSIONS, supported_extensions_text
 from core.rag_system import RAGSystem
 import os
 
@@ -50,11 +51,12 @@ def create_gradio_ui():
         
         with gr.Tab("Documents", elem_id="doc-management-tab"):
             gr.Markdown("## Add New Documents")
-            gr.Markdown("Upload PDF or Markdown files. Existing documents are skipped; use Clear All before re-indexing.")
+            gr.Markdown(f"Upload knowledge files ({supported_extensions_text()}). Existing documents are skipped; use Clear All before re-indexing.")
             
             files_input = gr.File(
-                label="Drop PDF or Markdown files here",
+                label="Drop knowledge files here",
                 file_count="multiple",
+                file_types=list(SUPPORTED_UPLOAD_EXTENSIONS),
                 type="filepath",
                 height=200,
                 show_label=False

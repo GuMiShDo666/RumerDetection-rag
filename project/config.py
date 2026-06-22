@@ -24,6 +24,12 @@ RETRIEVAL_SCORE_THRESHOLD = 0.4
 DEFAULT_RETRIEVAL_K = 7
 CHILD_CHUNK_SEPARATOR = "\n\n<CHILD_CHUNK_BOUNDARY>\n\n"
 
+# --- Multimodal Ingestion Configuration ---
+IMAGE_CAPTION_MODEL = os.environ.get("IMAGE_CAPTION_MODEL", "Salesforce/blip-image-captioning-base")
+IMAGE_CAPTION_MAX_NEW_TOKENS = int(os.environ.get("IMAGE_CAPTION_MAX_NEW_TOKENS", "80"))
+PADDLEOCR_LANG = os.environ.get("PADDLEOCR_LANG", "ch")
+TABLE_ROWS_PER_MARKDOWN_BLOCK = int(os.environ.get("TABLE_ROWS_PER_MARKDOWN_BLOCK", "200"))
+
 # --- Agent Configuration ---
 MAX_TOOL_CALLS = 8
 MAX_ITERATIONS = 10

@@ -1,11 +1,8 @@
 import os
 import shutil
 import config
-import pymupdf.layout
-import pymupdf4llm
 from pathlib import Path
 import glob
-import tiktoken
 from functools import lru_cache
 
 
@@ -24,6 +21,10 @@ def clear_directory_contents(directory: Path) -> None:
 os.environ["TOKENIZERS_PARALLELISM"] = "false"
 
 def pdf_to_markdown(pdf_path, output_dir):
+    import pymupdf
+    import pymupdf.layout
+    import pymupdf4llm
+
     doc = pymupdf.open(pdf_path)
     md = pymupdf4llm.to_markdown(doc, header=False, footer=False, page_separators=True, ignore_images=True, write_images=False, image_path=None)
     md_cleaned = md.encode('utf-8', errors='surrogatepass').decode('utf-8', errors='ignore')
@@ -41,6 +42,11 @@ def pdfs_to_markdowns(path_pattern, overwrite: bool = False):
 
 @lru_cache(maxsize=1)
 def _get_token_encoding():
+    try:
+        import tiktoken
+    except Exception:
+        return None
+
     try:
         return tiktoken.encoding_for_model("gpt-4")
     except Exception:

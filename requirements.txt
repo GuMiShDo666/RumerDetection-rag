@@ -14,3 +14,14 @@ ragas==0.4.3
 seaborn==0.13.2
 sentence-transformers==5.6.0
 tiktoken==0.13.0
+
+# Multimodal ingestion adapters
+camelot-py>=1.0.0
+docling>=2.0.0
+openpyxl>=3.1.0
+paddleocr>=3.0.0
+pandas>=2.2.0
+Pillow>=11.0.0
+torch>=2.4.0
+transformers>=4.44.0
+xlrd>=2.0.1
