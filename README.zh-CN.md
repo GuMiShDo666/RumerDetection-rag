@@ -182,13 +182,6 @@ python project/evaluation.py \
 - reference overlap 代理分数
 - expected source hit rate 来源命中率
 
-## 简历亮点
-
-- 为 PDF、图片、表格、电子表格和 Office 文档构建多模态 RAG 入库层。
-- 集成 Docling、PaddleOCR、Transformers/BLIP、Camelot、Qdrant 和 LangGraph 等开源工具。
-- 通过“统一转 Markdown”的方式保留模块化 RAG 架构，避免重写检索和 Agent 流程。
-- 实现包含问题改写、澄清、工具检索、上下文压缩、trace 可视化、稳定引用溯源和评测指标的 Agentic RAG 工作流。
-
 ## License
 
 本项目保留原仓库许可证，详见 [LICENSE](LICENSE)。
