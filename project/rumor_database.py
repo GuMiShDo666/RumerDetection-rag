@@ -9,6 +9,11 @@ LABEL_NAMES = {
     "1": "谣言",
 }
 
+NATURAL_VERDICTS = {
+    "0": "不是谣言",
+    "1": "是谣言",
+}
+
 SPLIT_FILES = (
     ("train", config.TRAIN_CSV),
     ("valid", config.VALID_CSV),
@@ -40,11 +45,13 @@ def read_split_rows():
                 if not text:
                     continue
                 label = normalize_label(row.get("label", ""))
+                statement = f"{text}{NATURAL_VERDICTS[label]}"
                 rows.append(
                     {
                         "id": f"RD-{len(rows) + 1:05d}",
                         "split": split_name,
                         "text": text,
+                        "statement": statement,
                         "label": label,
                         "label_name": LABEL_NAMES[label],
                     }
@@ -56,9 +63,21 @@ def write_merged_csv(rows, output_path=config.RUMOR_DATABASE_CSV):
     output_path = Path(output_path)
     output_path.parent.mkdir(parents=True, exist_ok=True)
     with output_path.open("w", encoding="utf-8", newline="") as file:
-        writer = csv.DictWriter(file, fieldnames=["id", "split", "text", "label", "label_name"])
+        writer = csv.DictWriter(
+            file,
+            fieldnames=["id", "statement", "label", "label_name"],
+            lineterminator="\n",
+        )
         writer.writeheader()
-        writer.writerows(rows)
+        writer.writerows(
+            {
+                "id": row["id"],
+                "statement": row["statement"],
+                "label": row["label"],
+                "label_name": row["label_name"],
+            }
+            for row in rows
+        )
     return output_path
 
 
@@ -66,8 +85,8 @@ def row_to_markdown(row):
     return "\n".join(
         [
             f"## Case {row['id']}",
+            row["statement"],
             f"Record ID: {row['id']}",
-            f"Dataset split: {row['split']}",
             f"Label: {row['label']}",
             f"Verdict: {row['label_name']}",
             f"Claim: {row['text']}",
@@ -84,7 +103,7 @@ def write_rag_markdown(rows, output_path=config.RUMOR_DATABASE_MARKDOWN):
 
     sections = [
         "# Rumor Detection RAG Database",
-        "This knowledge base is merged from the original train, validation, and test CSV files.",
+        "This knowledge base stores each labeled claim as a natural-language rumor judgment.",
         "Label meaning: `1` = 谣言, `0` = 非谣言.",
         f"Total records: {len(rows)}",
         f"Rumor records: {counts['谣言']}",
@@ -121,18 +140,14 @@ def database_summary():
 
     total = 0
     label_counts = {label_name: 0 for label_name in LABEL_NAMES.values()}
-    split_counts = {}
     with csv_path.open("r", encoding="utf-8", newline="") as file:
         reader = csv.DictReader(file)
         for row in reader:
             total += 1
             label_counts[row["label_name"]] = label_counts.get(row["label_name"], 0) + 1
-            split_counts[row["split"]] = split_counts.get(row["split"], 0) + 1
 
-    split_text = ", ".join(f"{name}: {count}" for name, count in sorted(split_counts.items()))
     return (
         f"Rows: {total}\n"
         f"Labels: 谣言={label_counts.get('谣言', 0)}, 非谣言={label_counts.get('非谣言', 0)}\n"
-        f"Splits: {split_text}\n"
         f"CSV: {csv_path}"
     )

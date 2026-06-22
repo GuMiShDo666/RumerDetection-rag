@@ -1,13 +1,13 @@
 [
   {
     "question": "吃人参能治百病",
-    "reference": "数据库中存在相似案例，标签为 1，表示谣言。",
+    "reference": "知识库中存在相似案例：吃人参能治百病是谣言。",
     "expected_verdict": "谣言",
     "expected_sources": ["rumor_database.csv"]
   },
   {
     "question": "年轻人同样可能感染并传播病毒",
-    "reference": "数据库中存在相似案例，标签为 0，表示非谣言。",
+    "reference": "知识库中存在相似案例：年轻人同样可能感染并传播病毒不是谣言。",
     "expected_verdict": "非谣言",
     "expected_sources": ["rumor_database.csv"]
   }

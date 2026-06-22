@@ -16,7 +16,7 @@ class DocumentManager:
         self.clear_all()
 
         if progress_callback:
-            progress_callback(0.35, desc="Merging train, validation, and test CSV files")
+            progress_callback(0.35, desc="Preparing labeled rumor knowledge base")
         result = build_rumor_database()
 
         md_path = Path(result["markdown_path"])

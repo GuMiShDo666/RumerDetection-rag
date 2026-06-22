@@ -1,9 +1,9 @@
 <h1 align="center">RumerDetection-rag</h1>
 
 <p align="center">
-  <strong>Agentic RAG for Chinese rumor detection over the original RumorDetection CSV dataset</strong>
+  <strong>Agentic RAG system for Chinese rumor detection over a labeled claim knowledge base</strong>
   <br />
-  <em>CSV merge · Qdrant hybrid retrieval · LangGraph agent · Evidence-grounded verdicts</em>
+  <em>Natural-language case database · Qdrant hybrid retrieval · LangGraph agent · Evidence-grounded verdicts</em>
 </p>
 
 <p align="center">
@@ -15,73 +15,64 @@
   <img src="https://img.shields.io/badge/Python-3.11%2B-3776AB?style=flat-square&logo=python&logoColor=white" alt="Python" />
   <img src="https://img.shields.io/badge/Agent-LangGraph-0F766E?style=flat-square" alt="LangGraph" />
   <img src="https://img.shields.io/badge/Vector_DB-Qdrant-DC244C?style=flat-square" alt="Qdrant" />
-  <img src="https://img.shields.io/badge/Dataset-RumorDetection-7C3AED?style=flat-square" alt="RumorDetection" />
+  <img src="https://img.shields.io/badge/Task-Rumor_Detection-7C3AED?style=flat-square" alt="Rumor Detection" />
 </p>
 
 ---
 
-RumerDetection-rag converts the original `GuMiShDo666/RumorDetection` train/validation/test CSV files into a single retrieval database and uses an Agentic RAG workflow to judge new Chinese claims.
+RumerDetection-rag is a retrieval-augmented rumor detection application for Chinese claims. It stores labeled rumor cases as searchable natural-language judgments, retrieves similar cases for a new claim, and uses an agent workflow to produce a grounded verdict.
 
-Instead of training a BERT classifier, this version keeps the original labeled CSV data as the knowledge base. The system retrieves similar labeled cases, compares them with the user claim, and returns a verdict grounded in retrieved evidence.
+The system is designed for evidence-first answers: if similar cases are missing or weak, the assistant returns `证据不足` instead of forcing a binary classification.
 
 ## Core Features
 
 | Feature | Description |
 | --- | --- |
-| Dataset merge | Merges `train.csv`, `valid.csv`, and `test.csv` into `data/rumor_database.csv` |
-| Label mapping | `1 = 谣言`, `0 = 非谣言` |
-| RAG database | Converts the merged CSV into Markdown cases for parent-child chunking |
+| Natural case database | Stores each case as a readable judgment such as `喝汤比吃菜更有营养是谣言` |
+| Label mapping | Keeps the explicit labels `1 = 谣言` and `0 = 非谣言` |
 | Hybrid retrieval | Uses Qdrant dense + sparse retrieval to find similar labeled claims |
-| Agentic workflow | LangGraph handles query rewriting, retrieval tools, context compression, and final synthesis |
+| Agentic workflow | Uses LangGraph for query rewriting, retrieval tools, context compression, and synthesis |
 | Evidence-grounded verdict | Returns `谣言`, `非谣言`, or `证据不足` with supporting retrieved cases |
-| Traceability | UI shows query rewrite, tool calls, retrieved context, and deterministic sources |
+| Traceability | Shows query rewrite, tool calls, retrieved context, and deterministic sources in the UI |
 
-## Dataset
+## Knowledge Base
 
-The original RumorDetection data is kept under `data/`:
+The main retrieval database is stored in `data/rumor_database.csv`.
 
-```text
-data/train.csv
-data/valid.csv
-data/test.csv
-data/rumor_database.csv
+Example format:
+
+```csv
+id,statement,label,label_name
+RD-00001,喝汤比吃菜更有营养是谣言,1,谣言
+RD-02687,年轻人同样可能感染并传播病毒不是谣言,0,非谣言
 ```
 
-Current merged database:
-
-| Split | Rows |
-| --- | ---: |
-| train | 2685 |
-| valid | 336 |
-| test | 336 |
-| total | 3357 |
-
-Label distribution:
+Current database statistics:
 
 | Label | Meaning | Rows |
 | --- | --- | ---: |
 | 1 | 谣言 | 1844 |
 | 0 | 非谣言 | 1513 |
+| total | - | 3357 |
 
 ## Architecture
 
 ```mermaid
 flowchart LR
-    A["train / valid / test CSV"] --> B["Merge CSV files"]
-    B --> C["rumor_database.csv"]
-    C --> D["Markdown case database"]
-    D --> E["Parent-child chunking"]
-    E --> F["Qdrant hybrid index"]
-    G["User claim"] --> H["LangGraph query rewrite"]
-    H --> I["search_child_chunks"]
-    I --> F
-    I --> J["retrieve_parent_chunks"]
-    J --> K["Verdict synthesis"]
+    A["Labeled claim database"] --> B["Natural-language case records"]
+    B --> C["Markdown RAG knowledge base"]
+    C --> D["Parent-child chunking"]
+    D --> E["Qdrant hybrid index"]
+    F["User claim"] --> G["LangGraph query rewrite"]
+    G --> H["search_child_chunks"]
+    H --> E
+    H --> I["retrieve_parent_chunks"]
+    I --> J["Verdict synthesis"]
 ```
 
 ## Quick Start
 
-### 1. Install dependencies
+### 1. Install Dependencies
 
 ```bash
 python3 -m venv .venv
@@ -100,7 +91,7 @@ ollama pull granite4.1:8b
 
 The default embedding model is `Qwen/Qwen3-Embedding-0.6B`.
 
-### 3. Launch the app
+### 3. Launch the App
 
 ```bash
 python project/app.py
@@ -118,22 +109,12 @@ python project/evaluation.py \
   --output rag_evaluation_results.csv
 ```
 
-The evaluator rebuilds the RAG database, runs the LangGraph agent, and exports:
-
-- predicted verdict
-- final answer
-- deterministic sources
-- retrieved context count
-- reference-overlap proxy score
-- expected-source hit rate
+The evaluator rebuilds the RAG database, runs the LangGraph agent, and exports the predicted verdict, final answer, deterministic sources, retrieved context count, reference-overlap proxy score, and expected-source hit rate.
 
 ## Project Structure
 
 ```text
 data/
-  train.csv
-  valid.csv
-  test.csv
   rumor_database.csv
 project/
   app.py
@@ -166,10 +147,10 @@ python3 -m json.tool project/evaluation_sample.json
 
 ## Notes
 
-- This project does not upload the original BERT training/inference code.
-- The RAG workflow uses the original CSV labels as evidence.
-- The system is evidence-grounded, not a medical authority. If retrieved cases are weak or conflicting, it should return `证据不足`.
+- The assistant uses retrieved cases as evidence rather than relying on a trained classifier alone.
+- The response starts with `判定：谣言`, `判定：非谣言`, or `判定：证据不足`.
+- The system is an evidence-grounded aid, not a general medical or legal authority.
 
 ## License
 
-This project keeps the original repository license. See [LICENSE](LICENSE).
+See [LICENSE](LICENSE).

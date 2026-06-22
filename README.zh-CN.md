@@ -1,9 +1,9 @@
 <h1 align="center">RumerDetection-rag</h1>
 
 <p align="center">
-  <strong>基于原 RumorDetection CSV 数据库的中文谣言检测 Agentic RAG 系统</strong>
+  <strong>基于标注文本知识库的中文谣言检测 Agentic RAG 系统</strong>
   <br />
-  <em>CSV 合并 · Qdrant 混合检索 · LangGraph Agent · 基于证据的谣言判定</em>
+  <em>自然语言案例库 · Qdrant 混合检索 · LangGraph Agent · 基于证据的谣言判定</em>
 </p>
 
 <p align="center">
@@ -15,68 +15,59 @@
   <img src="https://img.shields.io/badge/Python-3.11%2B-3776AB?style=flat-square&logo=python&logoColor=white" alt="Python" />
   <img src="https://img.shields.io/badge/Agent-LangGraph-0F766E?style=flat-square" alt="LangGraph" />
   <img src="https://img.shields.io/badge/Vector_DB-Qdrant-DC244C?style=flat-square" alt="Qdrant" />
-  <img src="https://img.shields.io/badge/Dataset-RumorDetection-7C3AED?style=flat-square" alt="RumorDetection" />
+  <img src="https://img.shields.io/badge/Task-Rumor_Detection-7C3AED?style=flat-square" alt="Rumor Detection" />
 </p>
 
 ---
 
-RumerDetection-rag 将原始 `GuMiShDo666/RumorDetection` 项目里的 `train.csv`、`valid.csv`、`test.csv` 合并为一个检索数据库，并使用 Agentic RAG 工作流对新的中文文本进行谣言检测。
+RumerDetection-rag 是一个面向中文文本的检索增强谣言检测应用。系统将已标注的谣言案例保存为可检索的自然语言判断，针对新的用户输入检索相似案例，再通过 Agent 工作流生成有依据的判定。
 
-这个版本不再保留 BERT 训练和模型推理代码，而是把原来的已标注 CSV 数据作为 RAG 知识库。系统会检索相似的已标注案例，比较用户输入与数据库案例，最后给出基于证据的判定。
+系统优先使用检索证据回答问题；当相似案例不足或证据较弱时，会返回 `证据不足`，而不是强行二分类。
 
 ## 核心能力
 
 | 能力 | 说明 |
 | --- | --- |
-| 数据集合并 | 将 `train.csv`、`valid.csv`、`test.csv` 合并为 `data/rumor_database.csv` |
-| 标签映射 | `1 = 谣言`，`0 = 非谣言` |
-| RAG 数据库 | 将合并后的 CSV 转为 Markdown case，用于 parent-child chunking |
+| 自然语言案例库 | 每条案例以 `喝汤比吃菜更有营养是谣言` 这样的可读格式保存 |
+| 标签映射 | 保留明确标签：`1 = 谣言`，`0 = 非谣言` |
 | 混合检索 | 使用 Qdrant dense + sparse 检索相似已标注文本 |
-| Agentic workflow | LangGraph 负责问题改写、工具检索、上下文压缩和最终聚合 |
+| Agentic workflow | 使用 LangGraph 负责问题改写、工具检索、上下文压缩和最终生成 |
 | 证据化判定 | 输出 `谣言`、`非谣言` 或 `证据不足`，并附相似案例依据 |
 | 可追踪性 | UI 展示 query rewrite、tool calls、retrieved context 和 deterministic sources |
 
-## 数据集
+## 知识库
 
-原 RumorDetection 数据保留在 `data/`：
+主检索数据库保存在 `data/rumor_database.csv`。
 
-```text
-data/train.csv
-data/valid.csv
-data/test.csv
-data/rumor_database.csv
+示例格式：
+
+```csv
+id,statement,label,label_name
+RD-00001,喝汤比吃菜更有营养是谣言,1,谣言
+RD-02687,年轻人同样可能感染并传播病毒不是谣言,0,非谣言
 ```
 
-当前合并后的数据库：
-
-| Split | Rows |
-| --- | ---: |
-| train | 2685 |
-| valid | 336 |
-| test | 336 |
-| total | 3357 |
-
-标签分布：
+当前数据库统计：
 
 | Label | 含义 | Rows |
 | --- | --- | ---: |
 | 1 | 谣言 | 1844 |
 | 0 | 非谣言 | 1513 |
+| total | - | 3357 |
 
 ## 架构
 
 ```mermaid
 flowchart LR
-    A["train / valid / test CSV"] --> B["合并 CSV"]
-    B --> C["rumor_database.csv"]
-    C --> D["Markdown case 数据库"]
-    D --> E["Parent-child chunking"]
-    E --> F["Qdrant 混合索引"]
-    G["用户输入文本"] --> H["LangGraph query rewrite"]
-    H --> I["search_child_chunks"]
-    I --> F
-    I --> J["retrieve_parent_chunks"]
-    J --> K["最终判定生成"]
+    A["标注文本知识库"] --> B["自然语言案例记录"]
+    B --> C["Markdown RAG 知识库"]
+    C --> D["Parent-child chunking"]
+    D --> E["Qdrant 混合索引"]
+    F["用户输入文本"] --> G["LangGraph query rewrite"]
+    G --> H["search_child_chunks"]
+    H --> E
+    H --> I["retrieve_parent_chunks"]
+    I --> J["最终判定生成"]
 ```
 
 ## 快速开始
@@ -118,22 +109,12 @@ python project/evaluation.py \
   --output rag_evaluation_results.csv
 ```
 
-评测脚本会重建 RAG 数据库、运行 LangGraph Agent，并导出：
-
-- predicted verdict
-- final answer
-- deterministic sources
-- retrieved context count
-- reference-overlap proxy score
-- expected-source hit rate
+评测脚本会重建 RAG 数据库、运行 LangGraph Agent，并导出 predicted verdict、final answer、deterministic sources、retrieved context count、reference-overlap proxy score 和 expected-source hit rate。
 
 ## 项目结构
 
 ```text
 data/
-  train.csv
-  valid.csv
-  test.csv
   rumor_database.csv
 project/
   app.py
@@ -166,10 +147,10 @@ python3 -m json.tool project/evaluation_sample.json
 
 ## 说明
 
-- 本项目不上传原来的 BERT 训练/推理代码。
-- RAG 工作流使用原始 CSV 标签作为判定证据。
-- 系统是基于检索证据的辅助判断，不是医学权威；当相似案例不足或冲突时，应输出 `证据不足`。
+- 系统使用检索到的案例作为证据，而不是只依赖训练好的分类器。
+- 回答以 `判定：谣言`、`判定：非谣言` 或 `判定：证据不足` 开头。
+- 该系统是基于证据的辅助判断工具，不是通用医学或法律权威。
 
 ## License
 
-本项目保留原仓库许可证，详见 [LICENSE](LICENSE)。
+详见 [LICENSE](LICENSE)。

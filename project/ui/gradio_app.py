@@ -42,7 +42,7 @@ def create_gradio_ui():
         
         with gr.Tab("Rumor Database", elem_id="doc-management-tab"):
             gr.Markdown("## RumorDetection RAG Database")
-            gr.Markdown("Build a retrieval database from the original `train.csv`, `valid.csv`, and `test.csv` files. Label `1` means rumor, and label `0` means non-rumor.")
+            gr.Markdown("Build a retrieval database from labeled Chinese rumor-detection cases. Label `1` means rumor, and label `0` means non-rumor.")
 
             build_btn = gr.Button("Build / Rebuild Rumor RAG Database", variant="primary", size="md")
 
