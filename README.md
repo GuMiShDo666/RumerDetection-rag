@@ -1,55 +1,73 @@
-# Multimodal Agentic RAG
+<h1 align="center">Multimodal Agentic RAG</h1>
 
-A local-first multimodal RAG application that ingests PDFs, images, spreadsheets, Office documents, and Markdown files into a searchable knowledge base, then answers questions through a LangGraph-powered agent.
+<p align="center">
+  <strong>A local-first RAG system for PDFs, images, tables, spreadsheets, and Office documents</strong>
+  <br />
+  <em>Multimodal ingestion · LangGraph agent · Qdrant hybrid retrieval · Gradio UI</em>
+</p>
 
-The project extends a classic text-only RAG pipeline into a multimodal document intelligence system. Every supported source is converted into Markdown first, then indexed through the existing parent-child chunking and hybrid Qdrant retrieval flow.
+<p align="center">
+  <a href="README.md">English</a> ·
+  <a href="README.zh-CN.md">简体中文</a>
+</p>
 
-## What It Does
+<p align="center">
+  <img src="https://img.shields.io/badge/Python-3.11%2B-3776AB?style=flat-square&logo=python&logoColor=white" alt="Python" />
+  <img src="https://img.shields.io/badge/Agent-LangGraph-0F766E?style=flat-square" alt="LangGraph" />
+  <img src="https://img.shields.io/badge/Vector_DB-Qdrant-DC244C?style=flat-square" alt="Qdrant" />
+  <img src="https://img.shields.io/badge/OCR-PaddleOCR-2563EB?style=flat-square" alt="PaddleOCR" />
+  <img src="https://img.shields.io/badge/Parser-Docling-111827?style=flat-square" alt="Docling" />
+</p>
 
-- Upload PDFs, images, CSV/TSV files, Excel workbooks, DOCX, PPTX, HTML, TXT, and Markdown.
-- Convert multimodal inputs into Markdown using open-source parsing/OCR/captioning tools.
-- Split documents into parent and child chunks for better retrieval precision and answer context.
-- Store child chunks in Qdrant with hybrid dense + sparse retrieval.
-- Retrieve evidence with LangGraph tool calls before answering.
-- Preserve conversation memory, clarify ambiguous questions, and aggregate multi-step answers.
-- Provide a Gradio UI for document management and chat.
+---
 
-## Multimodal Ingestion
+Multimodal Agentic RAG is a local-first knowledge-base application. It converts PDFs, images, tables, spreadsheets, Office documents, HTML, text, and Markdown into searchable Markdown, indexes the content with parent-child chunking and hybrid Qdrant retrieval, then answers user questions through a LangGraph-powered agent.
 
-| Capability | Open-source component | Purpose |
-| --- | --- | --- |
-| Document parsing | Docling | Convert rich documents such as PDF, DOCX, PPTX, and HTML into Markdown |
-| OCR | PaddleOCR | Extract visible text from uploaded images |
-| Image captioning | Hugging Face Transformers + BLIP | Generate searchable visual descriptions for images |
-| Table extraction | Camelot | Extract tables from PDFs |
-| Spreadsheet parsing | pandas, openpyxl, xlrd | Convert CSV/TSV/Excel tables into Markdown tables |
+The design keeps the original RAG architecture modular: multimodal files are normalized into Markdown first, then the existing chunking, vector indexing, retrieval tools, and answer synthesis pipeline handle them normally.
 
-Supported upload formats:
+## Core Features
 
-`.pdf`, `.md`, `.txt`, `.png`, `.jpg`, `.jpeg`, `.webp`, `.bmp`, `.tif`, `.tiff`, `.csv`, `.tsv`, `.xlsx`, `.xls`, `.docx`, `.pptx`, `.html`, `.htm`
+| Feature | Description |
+| --- | --- |
+| Multimodal upload | Supports PDF, images, CSV/TSV, Excel, DOCX, PPTX, HTML, TXT, and Markdown |
+| OCR | Uses PaddleOCR to extract visible text from uploaded images |
+| Image captioning | Uses Hugging Face Transformers with BLIP to generate searchable visual descriptions |
+| Rich document parsing | Uses Docling to parse PDFs, DOCX, PPTX, and HTML into Markdown |
+| Table extraction | Uses Camelot for PDF tables and pandas/openpyxl/xlrd for CSV and Excel files |
+| Parent-child chunking | Searches smaller child chunks while retrieving larger parent chunks for context |
+| Hybrid retrieval | Combines dense embeddings and sparse BM25 retrieval in Qdrant |
+| Agentic workflow | LangGraph handles query rewriting, clarification, tool calls, context compression, and answer aggregation |
+| Local UI | Gradio provides document management and chat in one app |
+
+## Supported Inputs
+
+```text
+.pdf, .md, .txt,
+.png, .jpg, .jpeg, .webp, .bmp, .tif, .tiff,
+.csv, .tsv, .xlsx, .xls,
+.docx, .pptx, .html, .htm
+```
 
 ## Architecture
 
 ```mermaid
 flowchart LR
-    A["User uploads files"] --> B["Multimodal Markdown conversion"]
+    A["Upload files"] --> B["Multimodal Markdown conversion"]
     B --> C["Parent-child chunking"]
-    C --> D["Qdrant hybrid vector index"]
-    E["User asks a question"] --> F["LangGraph query rewrite and clarification"]
-    F --> G["Agent retrieval tools"]
+    C --> D["Qdrant hybrid index"]
+    E["Ask a question"] --> F["Query rewrite / clarification"]
+    F --> G["LangGraph retrieval tools"]
     G --> D
     G --> H["Parent context retrieval"]
-    H --> I["Answer synthesis"]
+    H --> I["Final answer synthesis"]
 ```
-
-The ingestion layer is intentionally thin: it converts each supported file type into Markdown and then reuses the original RAG pipeline. This keeps the project modular and makes future parsers easy to add without rewriting the agent or vector database logic.
 
 ## Project Structure
 
 ```text
 project/
   app.py                         # Gradio app entry point
-  config.py                      # Central model, retrieval, and ingestion config
+  config.py                      # Model, retrieval, and ingestion config
   document_chunker.py            # Parent-child chunking
   core/
     document_manager.py          # Upload, conversion, chunking, indexing
@@ -70,7 +88,7 @@ project/
 
 ## Quick Start
 
-### 1. Create an environment
+### 1. Create a Python environment
 
 ```bash
 python3 -m venv .venv
@@ -79,7 +97,7 @@ python -m pip install --upgrade pip
 python -m pip install -r requirements.txt
 ```
 
-### 2. Install and run Ollama
+### 2. Install and prepare Ollama
 
 Install Ollama from [ollama.com](https://ollama.com), then pull the default chat model:
 
@@ -89,7 +107,7 @@ ollama pull granite4.1:8b
 
 The default embedding model is `Qwen/Qwen3-Embedding-0.6B`. It will be downloaded by Hugging Face tooling on first use.
 
-### 3. Launch the app
+### 3. Run the app
 
 ```bash
 python project/app.py
@@ -113,17 +131,19 @@ PADDLEOCR_LANG = "ch"
 TABLE_ROWS_PER_MARKDOWN_BLOCK = 200
 ```
 
-Runtime data is intentionally ignored by Git:
+Runtime data is intentionally excluded from Git:
 
-- `qdrant_db/`
-- `markdown_docs/`
-- `parent_store/`
-- `.env`
-- `.venv/`
+```text
+qdrant_db/
+markdown_docs/
+parent_store/
+.env
+.venv/
+```
 
-## Notes on First Run
+## First-Run Notes
 
-The first upload for some formats may take longer because model weights or parser assets need to initialize:
+Some formats initialize heavier models or parsers on first use:
 
 - image captioning initializes a BLIP model through Transformers
 - OCR initializes PaddleOCR
@@ -134,19 +154,17 @@ After conversion, all content is stored as Markdown and indexed through the same
 
 ## Validation
 
-Lightweight checks used during development:
-
 ```bash
 python3 -m compileall -q project
 ```
 
-The multimodal conversion layer was also smoke-tested with CSV and image inputs to verify Markdown generation before indexing.
+The multimodal conversion layer was smoke-tested with CSV and image inputs to verify Markdown generation before indexing.
 
 ## Resume Highlights
 
 - Built a multimodal RAG ingestion layer for PDFs, images, tables, spreadsheets, and Office documents.
-- Integrated high-star open-source models/tools including Docling, PaddleOCR, Transformers/BLIP, Camelot, Qdrant, and LangGraph.
-- Preserved a modular RAG architecture by normalizing all source formats into Markdown before chunking and indexing.
+- Integrated open-source tools including Docling, PaddleOCR, Transformers/BLIP, Camelot, Qdrant, and LangGraph.
+- Preserved a modular RAG architecture by normalizing every source format into Markdown before chunking and indexing.
 - Implemented agentic retrieval with query rewriting, clarification, tool-based search, context compression, and final answer aggregation.
 
 ## License
