@@ -1,9 +1,9 @@
 <h1 align="center">RumerDetection-rag</h1>
 
 <p align="center">
-  <strong>Agentic RAG system for Chinese rumor detection over a labeled claim knowledge base</strong>
+  <strong>Agentic RAG system for Chinese text and image rumor detection</strong>
   <br />
-  <em>Natural-language case database · Qdrant hybrid retrieval · LangGraph agent · Evidence-grounded verdicts</em>
+  <em>OCR + BLIP image parsing · Natural-language case database · Qdrant hybrid retrieval · LangGraph agent</em>
 </p>
 
 <p align="center">
@@ -20,7 +20,7 @@
 
 ---
 
-RumerDetection-rag is a retrieval-augmented rumor detection application for Chinese claims. It stores labeled rumor cases as searchable natural-language judgments, retrieves similar cases for a new claim, and uses an agent workflow to produce a grounded verdict.
+RumerDetection-rag is a retrieval-augmented rumor detection application for Chinese text and image claims. It stores labeled rumor cases as searchable natural-language judgments, retrieves similar cases for a new input, and uses an agent workflow to produce a grounded verdict.
 
 The system is designed for evidence-first answers: if similar cases are missing or weak, the assistant returns `证据不足` instead of forcing a binary classification.
 
@@ -28,12 +28,13 @@ The system is designed for evidence-first answers: if similar cases are missing 
 
 | Feature | Description |
 | --- | --- |
+| Text and image detection | Accepts direct text input or uploaded images in the chat UI |
+| OCR + BLIP parsing | Uses PaddleOCR for image text extraction and BLIP for image captioning |
 | Natural case database | Stores each case as a readable judgment such as `喝汤比吃菜更有营养是谣言` |
 | Label mapping | Keeps the explicit labels `1 = 谣言` and `0 = 非谣言` |
 | Hybrid retrieval | Uses Qdrant dense + sparse retrieval to find similar labeled claims |
 | Agentic workflow | Uses LangGraph for query rewriting, retrieval tools, context compression, and synthesis |
 | Evidence-grounded verdict | Returns `谣言`, `非谣言`, or `证据不足` with supporting retrieved cases |
-| Traceability | Shows query rewrite, tool calls, retrieved context, and deterministic sources in the UI |
 
 ## Knowledge Base
 
@@ -64,6 +65,8 @@ flowchart LR
     C --> D["Parent-child chunking"]
     D --> E["Qdrant hybrid index"]
     F["User claim"] --> G["LangGraph query rewrite"]
+    K["Uploaded image"] --> L["PaddleOCR + BLIP"]
+    L --> G
     G --> H["search_child_chunks"]
     H --> E
     H --> I["retrieve_parent_chunks"]
@@ -78,8 +81,11 @@ flowchart LR
 python3 -m venv .venv
 source .venv/bin/activate
 python -m pip install --upgrade pip
+python -m pip install paddlepaddle==3.0.0 -i https://www.paddlepaddle.org.cn/packages/stable/cpu/
 python -m pip install -r requirements.txt
 ```
+
+The CPU PaddlePaddle command above enables PaddleOCR on common local environments. For GPU or platform-specific wheels, follow the [PaddleOCR installation guide](https://paddlepaddle.github.io/PaddleOCR/v3.1.1/en/quick_start.html).
 
 ### 2. Prepare Ollama
 
@@ -97,7 +103,7 @@ The default embedding model is `Qwen/Qwen3-Embedding-0.6B`.
 python project/app.py
 ```
 
-Open the Gradio URL, click **Build / Rebuild Rumor RAG Database**, then enter a claim in the Chat tab.
+Open the Gradio URL, click **Build / Rebuild Rumor RAG Database**, then enter a claim or upload an image in the Chat tab.
 
 ## Evaluation
 
@@ -123,6 +129,7 @@ project/
   document_chunker.py
   core/
     document_manager.py
+    image_claim_extractor.py
     rag_system.py
     chat_interface.py
   db/
@@ -148,6 +155,8 @@ python3 -m json.tool project/evaluation_sample.json
 ## Notes
 
 - The assistant uses retrieved cases as evidence rather than relying on a trained classifier alone.
+- Image inputs are parsed before retrieval. OCR text is the primary signal, and BLIP captions are secondary context.
+- The first image request may download OCR and BLIP model weights.
 - The response starts with `判定：谣言`, `判定：非谣言`, or `判定：证据不足`.
 - The system is an evidence-grounded aid, not a general medical or legal authority.
 

@@ -67,13 +67,26 @@ def create_gradio_ui():
         with gr.Tab("Chat"):
             chatbot = gr.Chatbot(
                 height=720, 
-                placeholder="<strong>Enter a claim for rumor detection.</strong><br><em>The agent will search similar labeled cases before answering.</em>",
+                placeholder="<strong>Enter a claim or upload an image for rumor detection.</strong><br><em>Images are parsed with OCR and BLIP before retrieval.</em>",
                 show_label=False,
                 avatar_images=(None, os.path.join(ASSETS_DIR, "chatbot_avatar.png")),
                 layout="bubble"
             )
             chatbot.clear(clear_chat_handler)
+
+            chat_input = gr.MultimodalTextbox(
+                file_types=["image"],
+                file_count="single",
+                placeholder="Type a claim or upload an image...",
+                show_label=False,
+                sources=["upload"],
+            )
             
-            gr.ChatInterface(fn=chat_handler, chatbot=chatbot)
+            gr.ChatInterface(
+                fn=chat_handler,
+                chatbot=chatbot,
+                textbox=chat_input,
+                multimodal=True,
+            )
     
     return demo

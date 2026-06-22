@@ -2,6 +2,7 @@ import json
 import re
 from langchain_core.messages import HumanMessage, AIMessageChunk, ToolMessage
 from core.execution_logger import log_chat_end, log_chat_start, log_error
+from core.image_claim_extractor import ImageClaimExtractor, is_supported_image
 
 SYSTEM_NODES = {"summarize_history", "rewrite_query"}
 FINAL_RESPONSE_NODES = {"aggregate_answers"}
@@ -79,6 +80,50 @@ class ChatInterface:
 
     def __init__(self, rag_system):
         self.rag_system = rag_system
+        self.image_extractor = ImageClaimExtractor()
+
+    def _path_from_file_value(self, value):
+        if isinstance(value, str):
+            return value
+        if isinstance(value, dict):
+            return value.get("path") or value.get("name")
+        return getattr(value, "path", None) or getattr(value, "name", None)
+
+    def _normalize_message(self, message):
+        if isinstance(message, dict):
+            user_text = str(message.get("text") or "").strip()
+            files = message.get("files") or []
+        else:
+            user_text = str(message or "").strip()
+            files = []
+
+        image_paths = []
+        for file_value in files:
+            path = self._path_from_file_value(file_value)
+            if path and is_supported_image(path):
+                image_paths.append(path)
+
+        if not user_text and not image_paths:
+            raise ValueError("请输入文本，或上传一张包含待检测信息的图片。")
+
+        image_results = [self.image_extractor.extract(path) for path in image_paths]
+        if not image_results:
+            return user_text, []
+
+        prompt_parts = []
+        if user_text:
+            prompt_parts.extend(["用户补充文本:", user_text, ""])
+        prompt_parts.append("请判断下列图片中呈现的主张是否为谣言。优先使用 OCR 识别文本；如果 OCR 不完整，再参考 BLIP 图片说明。")
+        prompt_parts.extend(
+            self.image_extractor.to_prompt_section(result, index)
+            for index, result in enumerate(image_results, start=1)
+        )
+
+        image_summaries = [
+            self.image_extractor.to_summary_markdown(result, index)
+            for index, result in enumerate(image_results, start=1)
+        ]
+        return "\n\n".join(prompt_parts).strip(), image_summaries
 
     def _handle_system_node(self, chunk, node, response_messages, system_node_buffer, trace_events, trace_keys):
         """Update (or create) the collapsible system-node message and surface any clarification."""
@@ -170,28 +215,44 @@ class ChatInterface:
             yield "⚠️ System not initialized!"
             return
 
+        try:
+            normalized_message, image_summaries = self._normalize_message(message)
+        except Exception as e:
+            log_error("image_message_preprocessing", e)
+            yield f"❌ Error: {str(e)}"
+            return
+
         config        = self.rag_system.get_config()
         current_state = self.rag_system.agent_graph.get_state(config)
-        log_chat_start(message.strip(), self.rag_system.thread_id, bool(current_state.next))
+        log_chat_start(normalized_message, self.rag_system.thread_id, bool(current_state.next))
 
         try:
             if current_state.next:
-                self.rag_system.agent_graph.update_state(config, {"messages": [HumanMessage(content=message.strip())]})
+                self.rag_system.agent_graph.update_state(config, {"messages": [HumanMessage(content=normalized_message)]})
                 stream_input = None
             else:
-                stream_input = {"messages": [HumanMessage(content=message.strip())]}
+                stream_input = {"messages": [HumanMessage(content=normalized_message)]}
 
             response_messages  = []
             active_tool_calls  = {}
             system_node_buffer = {}
             trace_events       = []
             trace_keys         = set()
+            if image_summaries:
+                response_messages.append(
+                    make_message(
+                        "\n\n---\n\n".join(image_summaries),
+                        title="🖼️ Image Understanding",
+                        node="image_understanding",
+                    )
+                )
+                yield response_messages
             add_trace_event(
                 response_messages,
                 trace_events,
                 trace_keys,
                 "original_query",
-                f"Original query: {message.strip()}",
+                f"Original query: {normalized_message}",
             )
 
             for chunk, metadata in self.rag_system.agent_graph.stream(stream_input, config=config, stream_mode="messages"):
