@@ -123,9 +123,9 @@ python project/app.py
 
 打开本地 Web 地址，然后在检测页面输入待检测文本或上传图片。
 
-## 新服务器一键部署
+## 一键部署
 
-在新的 Linux 服务器上执行：
+执行：
 
 ```bash
 git clone https://github.com/GuMiShDo666/RumerDetection-rag.git
