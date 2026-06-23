@@ -111,7 +111,6 @@ export DASHSCOPE_API_KEY="your_dashscope_api_key"
 By default, the app uses:
 
 ```text
-LLM_PROVIDER=qwen
 QWEN_MODEL=qwen-plus
 QWEN_BASE_URL=https://dashscope.aliyuncs.com/compatible-mode/v1
 ```
@@ -182,8 +181,6 @@ project/
     nodes.py
     tools.py
     prompts.py
-  ui/
-    gradio_app.py
   web/
     index.html
     styles.css

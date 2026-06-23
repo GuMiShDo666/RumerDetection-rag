@@ -18,14 +18,10 @@ SPARSE_VECTOR_NAME = "sparse"
 # --- Model Configuration ---
 DENSE_MODEL = os.environ.get("DENSE_MODEL", "BAAI/bge-small-zh-v1.5")
 SPARSE_MODEL = os.environ.get("SPARSE_MODEL", "Qdrant/bm25")
-LLM_PROVIDER = os.environ.get("LLM_PROVIDER", "qwen").strip().lower()
 QWEN_MODEL = os.environ.get("QWEN_MODEL", "qwen-plus")
 QWEN_BASE_URL = os.environ.get("QWEN_BASE_URL", "https://dashscope.aliyuncs.com/compatible-mode/v1")
 QWEN_API_KEY = os.environ.get("QWEN_API_KEY") or os.environ.get("DASHSCOPE_API_KEY", "")
-OLLAMA_MODEL = os.environ.get("OLLAMA_MODEL", os.environ.get("LLM_MODEL", "granite4.1:8b"))
-LLM_MODEL = os.environ.get("LLM_MODEL", QWEN_MODEL if LLM_PROVIDER in {"qwen", "dashscope"} else OLLAMA_MODEL)
 LLM_TEMPERATURE = float(os.environ.get("LLM_TEMPERATURE", "0"))
-LLM_SEED = int(os.environ.get("LLM_SEED", "42"))
 RAG_FORCE_RETRIEVAL_FALLBACK = os.environ.get("RAG_FORCE_RETRIEVAL_FALLBACK", "false").lower() == "true"
 IMAGE_CAPTION_MODEL = os.environ.get("IMAGE_CAPTION_MODEL", "Salesforce/blip-image-captioning-base")
 IMAGE_CAPTION_MAX_NEW_TOKENS = int(os.environ.get("IMAGE_CAPTION_MAX_NEW_TOKENS", "80"))

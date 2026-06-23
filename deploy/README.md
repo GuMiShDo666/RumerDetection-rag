@@ -1,6 +1,6 @@
 # Qwen API Server Deployment
 
-The default deployment path uses DashScope's OpenAI-compatible Qwen API. It does not require Ollama or local LLM weights.
+The deployment path uses DashScope's OpenAI-compatible Qwen API.
 
 ## One-Click Deployment
 

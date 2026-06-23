@@ -31,20 +31,6 @@ def _server_host():
 def _server_port():
     return int(os.environ.get("RAG_SERVER_PORT", "7860"))
 
-def _launch_gradio():
-    from ui.css import custom_css
-    from ui.gradio_app import create_gradio_ui
-
-    print("\nCreating RumorDetection RAG Gradio UI...")
-    demo = create_gradio_ui()
-    print("\nLaunching RumorDetection RAG...")
-    demo.launch(
-        css=custom_css,
-        server_name=_server_host(),
-        server_port=_server_port(),
-        auth=_launch_auth(),
-    )
-
 def _launch_html():
     import uvicorn
     from web_app import create_web_app
@@ -55,7 +41,4 @@ def _launch_html():
     uvicorn.run(app, host=_server_host(), port=_server_port())
 
 if __name__ == "__main__":
-    if os.environ.get("RAG_UI_MODE", "html").strip().lower() == "gradio":
-        _launch_gradio()
-    else:
-        _launch_html()
+    _launch_html()

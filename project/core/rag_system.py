@@ -20,33 +20,20 @@ class RAGSystem:
         self.recursion_limit = config.GRAPH_RECURSION_LIMIT
 
     def _create_llm(self):
-        provider = config.LLM_PROVIDER
-        if provider in {"qwen", "dashscope"}:
-            if not config.QWEN_API_KEY:
-                raise RuntimeError(
-                    "Missing Qwen API key. Set DASHSCOPE_API_KEY or QWEN_API_KEY "
-                    "in project/.env before starting the application."
-                )
-            from langchain_openai import ChatOpenAI
-
-            return ChatOpenAI(
-                api_key=config.QWEN_API_KEY,
-                base_url=config.QWEN_BASE_URL,
-                model=config.QWEN_MODEL,
-                temperature=config.LLM_TEMPERATURE,
-                stream_usage=True,
+        if not config.QWEN_API_KEY:
+            raise RuntimeError(
+                "Missing Qwen API key. Set DASHSCOPE_API_KEY or QWEN_API_KEY "
+                "in project/.env before starting the application."
             )
+        from langchain_openai import ChatOpenAI
 
-        if provider == "ollama":
-            from langchain_ollama import ChatOllama
-
-            return ChatOllama(
-                model=config.OLLAMA_MODEL,
-                temperature=config.LLM_TEMPERATURE,
-                seed=config.LLM_SEED,
-            )
-
-        raise ValueError(f"Unsupported LLM_PROVIDER: {provider}. Use 'qwen' or 'ollama'.")
+        return ChatOpenAI(
+            api_key=config.QWEN_API_KEY,
+            base_url=config.QWEN_BASE_URL,
+            model=config.QWEN_MODEL,
+            temperature=config.LLM_TEMPERATURE,
+            stream_usage=True,
+        )
 
     def initialize(self):
         self.vector_db.create_collection(self.collection_name)

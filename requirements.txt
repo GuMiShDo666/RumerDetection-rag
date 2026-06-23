@@ -1,8 +1,6 @@
 fastembed==0.8.0
 fastapi>=0.115.0
-gradio==6.19.0
 langchain-huggingface==1.2.2
-langchain-ollama==1.1.0
 langchain-openai>=1.1.0
 langchain-qdrant==1.1.0
 langchain-text-splitters==1.1.2

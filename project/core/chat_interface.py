@@ -385,7 +385,7 @@ class ChatInterface:
         response_messages[-1]["content"] += chunk.content
 
     def chat(self, message, history):
-        """Generator that streams Gradio chat message dicts."""
+        """Generator that streams chat message dicts."""
         if not self.rag_system.agent_graph:
             yield "系统尚未初始化。"
             return
