@@ -1,5 +1,4 @@
 import uuid
-from langchain_ollama import ChatOllama
 import config
 from db.vector_db_manager import VectorDbManager
 from db.parent_store_manager import ParentStoreManager
@@ -20,15 +19,40 @@ class RAGSystem:
         self.thread_id = str(uuid.uuid4())
         self.recursion_limit = config.GRAPH_RECURSION_LIMIT
 
+    def _create_llm(self):
+        provider = config.LLM_PROVIDER
+        if provider in {"qwen", "dashscope"}:
+            if not config.QWEN_API_KEY:
+                raise RuntimeError(
+                    "Missing Qwen API key. Set DASHSCOPE_API_KEY or QWEN_API_KEY "
+                    "in project/.env before starting the application."
+                )
+            from langchain_openai import ChatOpenAI
+
+            return ChatOpenAI(
+                api_key=config.QWEN_API_KEY,
+                base_url=config.QWEN_BASE_URL,
+                model=config.QWEN_MODEL,
+                temperature=config.LLM_TEMPERATURE,
+                stream_usage=True,
+            )
+
+        if provider == "ollama":
+            from langchain_ollama import ChatOllama
+
+            return ChatOllama(
+                model=config.OLLAMA_MODEL,
+                temperature=config.LLM_TEMPERATURE,
+                seed=config.LLM_SEED,
+            )
+
+        raise ValueError(f"Unsupported LLM_PROVIDER: {provider}. Use 'qwen' or 'ollama'.")
+
     def initialize(self):
         self.vector_db.create_collection(self.collection_name)
         collection = self.vector_db.get_collection(self.collection_name)
 
-        llm = ChatOllama(
-            model=config.LLM_MODEL,
-            temperature=config.LLM_TEMPERATURE,
-            seed=config.LLM_SEED,
-        )
+        llm = self._create_llm()
         tools = ToolFactory(collection).create_tools()
         self.agent_graph = create_agent_graph(llm, tools)
 

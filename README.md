@@ -3,7 +3,7 @@
 <p align="center">
   <strong>Agentic RAG system for Chinese text and image rumor detection</strong>
   <br />
-  <em>OCR + BLIP image parsing · Reference article knowledge base · Qdrant hybrid retrieval · LangGraph agent</em>
+  <em>OCR + BLIP image parsing · Reference article knowledge base · Qdrant hybrid retrieval · Qwen API · LangGraph agent</em>
 </p>
 
 <p align="center">
@@ -44,6 +44,7 @@ The system is designed for evidence-first answers: if relevant article evidence 
 | Article normalization | Builds a generated `data/rumor_database.csv` with `id`, `source`, `title`, `url`, `date`, and `text` |
 | Hybrid retrieval | Uses Qdrant dense + sparse retrieval to find relevant reference articles |
 | Agentic workflow | Uses LangGraph for query rewriting, retrieval tools, context compression, and synthesis |
+| Qwen API generation | Uses DashScope's OpenAI-compatible Qwen API as the default LLM provider |
 | Evidence-grounded verdict | Returns `谣言`, `非谣言`, or `证据不足` with supporting retrieved articles |
 
 ## Knowledge Base
@@ -97,15 +98,23 @@ python -m pip install -r requirements.txt
 
 The CPU PaddlePaddle command above enables PaddleOCR on common local environments. For GPU or platform-specific wheels, follow the [PaddleOCR installation guide](https://paddlepaddle.github.io/PaddleOCR/v3.1.1/en/quick_start.html).
 
-### 2. Prepare Ollama
+### 2. Configure Qwen API
 
-Install Ollama from [ollama.com](https://ollama.com), then pull the default chat model:
+Copy the environment template and set your DashScope API key:
 
 ```bash
-ollama pull granite4.1:8b
+cp project/.env.example project/.env
+export DASHSCOPE_API_KEY="your_dashscope_api_key"
+# or write DASHSCOPE_API_KEY=... into project/.env
 ```
 
-The default embedding model is `Qwen/Qwen3-Embedding-0.6B`.
+By default, the app uses:
+
+```text
+LLM_PROVIDER=qwen
+QWEN_MODEL=qwen-plus
+QWEN_BASE_URL=https://dashscope.aliyuncs.com/compatible-mode/v1
+```
 
 ### 3. Launch the App
 
@@ -114,6 +123,27 @@ python project/app.py
 ```
 
 Open the local web URL, then enter a claim or upload an image on the detection page.
+
+## One-Click Server Deployment
+
+On a fresh Linux server, run:
+
+```bash
+git clone https://github.com/GuMiShDo666/RumerDetection-rag.git
+cd RumerDetection-rag
+sudo DASHSCOPE_API_KEY="your_dashscope_api_key" \
+  PUBLIC_HOST="your_server_public_ip" \
+  BASIC_AUTH_PASSWORD="Dongzexuan" \
+  bash deploy/one_click_qwen_server.sh
+```
+
+After installation, open:
+
+```text
+https://your_server_public_ip/
+```
+
+The script installs dependencies, creates `project/.env`, builds the local Qdrant index, starts the FastAPI service with systemd, and exposes the Chinese HTML UI through Nginx HTTPS with Basic Auth.
 
 ## Evaluation
 
@@ -154,6 +184,13 @@ project/
     prompts.py
   ui/
     gradio_app.py
+  web/
+    index.html
+    styles.css
+    app.js
+  web_app.py
+deploy/
+  one_click_qwen_server.sh
 ```
 
 ## Validation
