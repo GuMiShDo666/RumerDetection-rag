@@ -125,7 +125,7 @@ Open the local web URL, then enter a claim or upload an image on the detection p
 
 ## One-Click Server Deployment
 
-On a fresh Linux server, run:
+run:
 
 ```bash
 git clone https://github.com/GuMiShDo666/RumerDetection-rag.git
